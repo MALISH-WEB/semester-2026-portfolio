@@ -1,0 +1,48 @@
+class BodaBusiness:
+    def __init__(self, tarmac_fare_rate: float, dust_fare_rate: float, season: str):
+        self.tarmac_fare_rate = tarmac_fare_rate
+        self.dust_fare_rate = dust_fare_rate
+        self.season = season.lower()  # e.g., 'dry' or 'wet'
+        
+        # Encapsulated attributes (private to protect financial and bike health data)
+        self.__total_earnings = 0.0
+        self.__fuel_balance = 5.0  # liters
+
+    # Getter for encapsulated earnings
+    def get_total_earnings(self) -> float:
+        return self.__total_earnings
+
+    # Getter for bike health
+    def get_bike_health(self) -> float:
+        return self.__bike_health_score
+
+    # Method to calculate trip fare and update rider state
+    def complete_trip(self, distance_km: float, road_type: str) -> float:
+        road = road_type.lower()
+        
+        # Determine base rate depending on whether it's tarmac or a dust road
+        if road == 'tarmac':
+            base_fare = distance_km * self.tarmac_fare_rate
+            wear_and_tear = 0.5 * distance_km
+        elif road == 'dust':
+            # Dust roads command higher fares due to rough terrain and bad conditions
+            season_multiplier = 1.3 if self.season == 'wet' else 1.1
+            base_fare = distance_km * self.dust_fare_rate * season_multiplier
+            wear_and_tear = 1.5 * distance_km  # Dust roads damage the bike faster
+        else:
+            raise ValueError("Invalid road type. Choose 'tarmac' or 'dust'.")
+
+        # Update encapsulated business metrics
+        self.__total_earnings += base_fare
+        
+        return round(base_fare, 2)
+
+
+
+# Initialize the business for a rainy season with specific rates per kilometer
+boda_stage = BodaBusiness(tarmac_fare_rate=1500, dust_fare_rate=2000, season='wet')
+
+# Complete a trip of 4 km on a dust road during the wet season
+trip_fare = boda_stage.complete_trip(distance_km=4.0, road_type='dust')
+print(f"Trip Fare Collected: UGX {trip_fare}")
+print(f"Total Earnings: UGX {boda_stage.get_total_earnings()}")
