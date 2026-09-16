@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: campusq_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campusq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-campusq}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-campusq}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campusq_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campusq_backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-campusq}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-campusq}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-key-change-in-production}
+      APP_ENV: ${APP_ENV:-development}
+      DEBUG: ${DEBUG:-True}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-smtp.example.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-noreply@ucu.ac.ug}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-changeme}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@ucu.ac.ug}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./backend:/app
+      - ./docs:/docs
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python -m pip install --no-cache-dir -r requirements.txt &&
+             alembic upgrade head &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    networks:
+      - campusq_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campusq_frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_NAME: CampusQ
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    command: >
+      sh -c "npm install && npm start"
+    networks:
+      - campusq_network
+
+volumes:
+  postgres_data:
+
+networks:
+  campusq_network:
+    driver: bridge
