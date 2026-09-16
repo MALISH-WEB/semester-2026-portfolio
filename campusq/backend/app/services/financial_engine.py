@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, Numeric
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -12,7 +12,7 @@ from app.models import (
 def get_verified_payments(db: Session, student_id, semester_id) -> Decimal:
     """Get total verified payments for a student in a semester."""
     result = db.query(
-        func.sum(Payment.amount.cast(float))
+        func.sum(Payment.amount)
     ).filter(
         Payment.student_id == student_id,
         Payment.semester_id == semester_id,
@@ -25,7 +25,7 @@ def get_verified_payments(db: Session, student_id, semester_id) -> Decimal:
 def get_pending_payments(db: Session, student_id, semester_id) -> Decimal:
     """Get total pending payments for a student in a semester."""
     result = db.query(
-        func.sum(Payment.amount.cast(float))
+        func.sum(Payment.amount)
     ).filter(
         Payment.student_id == student_id,
         Payment.semester_id == semester_id,
@@ -179,7 +179,7 @@ def get_financial_status(db: Session, student_id, semester_id) -> dict:
 def get_total_late_charges(db: Session, student_id, semester_id) -> Decimal:
     """Get total late charges for a student in a semester."""
     result = db.query(
-        func.sum(LatePaymentCharge.amount.cast(float))
+        func.sum(LatePaymentCharge.amount)
     ).filter(
         LatePaymentCharge.student_id == student_id,
         LatePaymentCharge.semester_id == semester_id,
